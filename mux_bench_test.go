@@ -8,16 +8,139 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/pilu/traffic"
 	"github.com/rcrowley/go-tigertonic"
+	gjweb "github.com/zenazn/goji/web"
+	"github.com/zenazn/goji/web/middleware"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 )
+
+func init() {
+	runtime.GOMAXPROCS(runtime.NumCPU())
+}
 
 //
 // Types used by any/all frameworks:
 //
 type RouterBuilder func(namespaces []string, resources []string) http.Handler
+
+//
+// Benchmarks for goji
+//
+func BenchmarkGoji_Simple(b *testing.B) {
+	gj := gjweb.New()
+	gj.Use(middleware.Recoverer)
+	gj.Use(middleware.AutomaticOptions)
+	gj.Get(`/action`, helloHandler)
+	rw, r := testRequest(`GET`, `/action`)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gj.ServeHTTP(rw, r)
+	}
+}
+
+func gojiRouterFor(namespaces []string, resources []string) http.Handler {
+	gj := gjweb.New()
+	gj.Use(middleware.Recoverer)
+	gj.Use(middleware.AutomaticOptions)
+
+	for _, ns := range namespaces {
+		for _, res := range resources {
+			gj.Get("/"+ns+"/"+res, helloHandler)
+			gj.Post("/"+ns+"/"+res, helloHandler)
+			gj.Get("/"+ns+"/"+res+"/:id", helloHandler)
+			gj.Put("/"+ns+"/"+res+"/:id", helloHandler)
+			gj.Delete("/"+ns+"/"+res+"/:id", helloHandler)
+		}
+	}
+
+	return gj
+}
+
+func BenchmarkGoji_Route15(b *testing.B) {
+	benchmarkRoutesN(b, 1, gojiRouterFor)
+}
+
+func BenchmarkGoji_Route75(b *testing.B) {
+	benchmarkRoutesN(b, 5, gojiRouterFor)
+}
+
+func BenchmarkGoji_Route150(b *testing.B) {
+	benchmarkRoutesN(b, 10, gojiRouterFor)
+}
+
+func BenchmarkGoji_Route300(b *testing.B) {
+	benchmarkRoutesN(b, 20, gojiRouterFor)
+}
+
+func BenchmarkGoji_Route3000(b *testing.B) {
+	benchmarkRoutesN(b, 200, gojiRouterFor)
+}
+
+func gojiMiddlePlainText(h http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+	}
+	return http.HandlerFunc(fn)
+}
+
+func BenchmarkGoji_Middleware(b *testing.B) {
+	gj := gjweb.New()
+	gj.Use(middleware.RequestID)
+	gj.Use(middleware.Recoverer)
+	gj.Use(middleware.AutomaticOptions)
+	gj.Use(gojiMiddlePlainText)
+	gj.Use(gojiMiddlePlainText)
+	gj.Use(gojiMiddlePlainText)
+
+	gj.Get(`/action`, helloHandler)
+
+	rw, req := testRequest("GET", "/action")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gj.ServeHTTP(rw, req)
+	}
+}
+
+func BenchmarkGoji_Composite(b *testing.B) {
+	namespaces, resources, requests := resourceSetup(10)
+
+	handler := func(c gjweb.C, w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, c.Env[`myfield`].(string))
+	}
+
+	gj := gjweb.New()
+
+	gj.Use(func(c *gjweb.C, h http.Handler) http.Handler {
+		fn := func(w http.ResponseWriter, r *http.Request) {
+			if c.Env == nil {
+				c.Env = make(map[string]interface{})
+			}
+			c.Env[`myfield`] = r.URL.Path
+			h.ServeHTTP(w, r)
+		}
+		return http.HandlerFunc(fn)
+	})
+	gj.Use(middleware.RequestID)
+	gj.Use(middleware.Recoverer)
+	gj.Use(middleware.AutomaticOptions)
+	gj.Use(gojiMiddlePlainText)
+	gj.Use(gojiMiddlePlainText)
+
+	for _, ns := range namespaces {
+		for _, res := range resources {
+			gj.Get("/"+ns+"/"+res, handler)
+			gj.Post("/"+ns+"/"+res, handler)
+			gj.Get("/"+ns+"/"+res+"/:id", handler)
+			gj.Put("/"+ns+"/"+res+"/:id", handler)
+			gj.Delete("/"+ns+"/"+res+"/:id", handler)
+		}
+	}
+	benchmarkRoutes(b, gj, requests)
+}
 
 //
 // Benchmarks for gocraft/web:
