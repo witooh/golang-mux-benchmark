@@ -3,6 +3,8 @@ package mux_bench_test
 import (
 	"crypto/sha1"
 	"fmt"
+	// "github.com/astaxie/beego"
+	// "github.com/astaxie/beego/context"
 	"github.com/codegangsta/martini"
 	"github.com/gocraft/web"
 	"github.com/gorilla/mux"
@@ -25,6 +27,149 @@ func init() {
 // Types used by any/all frameworks:
 //
 type RouterBuilder func(namespaces []string, resources []string) http.Handler
+
+//
+// Benchmarks for beego
+//
+// type HelloController struct {
+// 	beego.Controller
+// }
+
+// func (hc *HelloController) Get() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, "hello")
+// }
+
+// func (hc *HelloController) Post() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, "hello")
+// }
+
+// func (hc *HelloController) Put() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, "hello")
+// }
+
+// func (hc *HelloController) Delete() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, "hello")
+// }
+
+// type MyPathController struct {
+// 	beego.Controller
+// }
+
+// func (hc *MyPathController) Get() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, hc.Ctx.Input.GetData(`mypath`).(string))
+// }
+
+// func (hc *MyPathController) Post() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, hc.Ctx.Input.GetData(`mypath`).(string))
+// }
+
+// func (hc *MyPathController) Put() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, hc.Ctx.Input.GetData(`mypath`).(string))
+// }
+
+// func (hc *MyPathController) Delete() {
+// 	fmt.Fprintf(hc.Ctx.ResponseWriter, hc.Ctx.Input.GetData(`mypath`).(string))
+// }
+
+// func BenchmarkBeeGo_Simple(b *testing.B) {
+// 	beego.RunMode = `prod`
+// 	app := beego.NewApp()
+
+// 	app.Router("/action", &HelloController{})
+// 	rw, r := testRequest(`GET`, `/action`)
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		app.Handlers.ServeHTTP(rw, r)
+// 	}
+// }
+
+// func beegoRouterFor(namespaces []string, resources []string) http.Handler {
+// 	beego.RunMode = `prod`
+// 	app := beego.NewApp()
+// 	for _, ns := range namespaces {
+// 		for _, res := range resources {
+// 			app.Router("/"+ns+"/"+res, &HelloController{})
+// 			app.Router("/"+ns+"/"+res, &HelloController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &HelloController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &HelloController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &HelloController{})
+// 		}
+// 	}
+
+// 	return app.Handlers
+// }
+
+// func BenchmarkBeeGo_Route15(b *testing.B) {
+// 	benchmarkRoutesN(b, 1, beegoRouterFor)
+// }
+
+// func BenchmarkBeeGo_Route75(b *testing.B) {
+// 	benchmarkRoutesN(b, 5, beegoRouterFor)
+// }
+
+// func BenchmarkBeeGo_Route150(b *testing.B) {
+// 	benchmarkRoutesN(b, 10, beegoRouterFor)
+// }
+
+// func BenchmarkBeeGo_Route300(b *testing.B) {
+// 	benchmarkRoutesN(b, 20, beegoRouterFor)
+// }
+
+// func BenchmarkBeeGo_Route3000(b *testing.B) {
+// 	benchmarkRoutesN(b, 200, beegoRouterFor)
+// }
+
+// func BenchmarkBeeGo_Middleware(b *testing.B) {
+// 	beego.RunMode = `prod`
+// 	app := beego.NewApp()
+// 	var FilterUser = func(ctx *context.Context) {
+// 	}
+
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+
+// 	app.Router("/action", &HelloController{})
+// 	rw, r := testRequest(`GET`, `/action`)
+
+// 	b.ResetTimer()
+// 	for i := 0; i < b.N; i++ {
+// 		app.Handlers.ServeHTTP(rw, r)
+// 	}
+// }
+
+// func BenchmarkBeego_Composite(b *testing.B) {
+// 	namespaces, resources, requests := resourceSetup(10)
+
+// 	var FilterUser = func(ctx *context.Context) {
+// 	}
+
+// 	beego.RunMode = `prod`
+// 	app := beego.NewApp()
+
+// 	app.InsertFilter("*", beego.AfterStatic, func(ctx *context.Context) {
+// 		ctx.Input.SetData(`mypath`, ctx.Request.URL.Path)
+// 	})
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+// 	app.InsertFilter("*", beego.AfterStatic, FilterUser)
+
+// 	for _, ns := range namespaces {
+// 		for _, res := range resources {
+// 			app.Router("/"+ns+"/"+res, &MyPathController{})
+// 			app.Router("/"+ns+"/"+res, &MyPathController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &MyPathController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &MyPathController{})
+// 			app.Router("/"+ns+"/"+res+"/:id", &MyPathController{})
+// 		}
+// 	}
+// 	benchmarkRoutes(b, app.Handlers, requests)
+// }
 
 //
 // Benchmarks for goji
